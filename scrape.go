@@ -20,6 +20,22 @@ func check(err error) {
 	}
 }
 
+func threadPrep() *goquery.Document {
+	response, err := http.Get("https://www.vlr.gg/threads")
+	check(err)
+	defer response.Body.Close()
+
+	if response.StatusCode == 200 {
+		fmt.Println("Success: ", response.StatusCode)
+	} else {
+		fmt.Println("Error: ", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(response.Body)
+	check(err)
+	return doc
+}
+
 func threadScrape(doc *goquery.Document) {
 
 	type Thread struct {
@@ -36,8 +52,11 @@ func threadScrape(doc *goquery.Document) {
 	base_url := "https://www.vlr.gg"
 	doc.Find("div#thread-list.wf-card").Each(func(index int, item *goquery.Selection) {
 		doc.Find("div.thread.wf-module-item.mod-color.mod-left.mod-bg-after-.unread").Each(func(index2 int, item2 *goquery.Selection) {
-			tempFragCount, error := strconv.Atoi(strings.TrimSpace(item2.Find("span.frag-count").Text()))
-			check(error)
+
+			// Converts string text to int
+			tempFragCount, err := strconv.Atoi(strings.TrimSpace(item2.Find("span.frag-count").Text()))
+			check(err)
+
 			tempCommentCount := strings.TrimSpace(item2.Find("span.post-count").Text())
 
 			thread := Thread{
@@ -52,29 +71,13 @@ func threadScrape(doc *goquery.Document) {
 		})
 	})
 
-	jsonData, error := json.MarshalIndent(threads, "", "    ")
-	check(error)
+	// Converts data format to JSON
+	jsonData, err := json.MarshalIndent(threads, "", "    ")
+	check(err)
 
-	error = os.WriteFile("outputThreads.json", jsonData, 0644)
-	check(error)
+	err = os.WriteFile("outputThreads.json", jsonData, 0644)
+	check(err)
 
 	// Test output
 	// fmt.Println(string(jsonData))
-}
-
-func main() {
-	response, error := http.Get("https://www.vlr.gg/threads")
-	check(error)
-	defer response.Body.Close()
-
-	if response.StatusCode == 200 {
-		fmt.Println("Success: ", response.StatusCode)
-	} else {
-		fmt.Println("Error: ", error)
-	}
-
-	doc, error := goquery.NewDocumentFromReader(response.Body)
-	check(error)
-
-	threadScrape(doc)
 }

@@ -1,0 +1,5 @@
+*.json
+.aws/credentials
+.aws/config
+.aws
+go.*
