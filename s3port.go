@@ -27,6 +27,7 @@ func fileChecker(fileName string) {
 }
 
 // ListBuckets lists the buckets in the current account.
+// ListBuckets lists the buckets in the current account.
 func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
 	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	var buckets []types.Bucket
@@ -36,6 +37,35 @@ func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, erro
 		buckets = result.Buckets
 	}
 	return buckets, err
+}
+
+// func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
+// 	fmt.Println("Here 1")
+// 	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{}) // ERROR
+// 	fmt.Println("Here 2")
+// 	var buckets []types.Bucket
+// 	fmt.Println("Here 3")
+// 	if err != nil {
+// 		log.Printf("Couldn't list buckets for your account. Here's why: %v\n", err)
+// 	} else {
+// 		buckets = result.Buckets
+// 	}
+// 	fmt.Println("Here 4")
+// 	return buckets, err
+// }
+
+// ListObjects lists the objects in a bucket.
+func (service AWSService) ListObjects(ctx context.Context, bucketName string) ([]types.Object, error) {
+	result, err := service.S3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucketName),
+	})
+	var contents []types.Object
+	if err != nil {
+		log.Printf("Couldn't list objects in bucket %v. Here's why: %v\n", bucketName, err)
+	} else {
+		contents = result.Contents
+	}
+	return contents, err
 }
 
 // BucketExists checks whether a bucket exists in the current account.

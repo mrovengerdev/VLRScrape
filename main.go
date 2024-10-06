@@ -1,14 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/smithy-go"
 )
 
 /**
@@ -20,19 +13,15 @@ Plan:
 **/
 
 func main() {
-doc := threadPrep()
-	ctx := context.Background()
-	sess := session.Must(session.NewSession())
-	svc := s3.New(sess)
-	
-	buckets, err := svc.ListBucketsWithContext(ctx, nil)
-	if err != nil {
-		log.Printf("Couldn't list buckets for your account. Here's why: %v\n", err)
-	buckets, err := service.ListBuckets(ctx)
-	fmt.Printf("Buckets: %v\n", buckets)
+	// Check if endpoint can be reached
+	doc := threadPrep("https://www.vlr.gg/threads")
 
-	AWSService.ListBuckets(AWSService{}, ctx)
-	// AWSService.UploadFile(ctx, "vlr-scrape", objectkey, "outputThreads.json")
+	// Scrape from VLR.gg threads.
+	threadScrape(doc)
 
-	fmt.Println("Port to S3 complete.")
+	// Retrieve context and search buckets available to given environmental variables.
+	// ctx := context.Background()
+	// AWSService.ListBuckets(AWSService{}, ctx)
+
+	fmt.Println("Scrape complete.")
 }

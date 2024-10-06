@@ -20,8 +20,8 @@ func check(err error) {
 	}
 }
 
-func threadPrep() *goquery.Document {
-	response, err := http.Get("https://www.vlr.gg/threads")
+func threadPrep(url string) *goquery.Document {
+	response, err := http.Get(url)
 	check(err)
 	defer response.Body.Close()
 
@@ -39,12 +39,13 @@ func threadPrep() *goquery.Document {
 func threadScrape(doc *goquery.Document) {
 
 	type Thread struct {
+		ID               int    `json:"id"`
 		Title            string `json:"title"`
 		URL              string `json:"url"`
 		FragCount        int    `json:"frag_count"`
 		DatePublished    string `json:"date_published"`
 		DatePublishedAgo string `json:"date_published_ago"`
-		CommentCount     string `json:"comment_count"`
+		CommentCount     int    `json:"comment_count"`
 	}
 
 	var threads []Thread
@@ -57,15 +58,22 @@ func threadScrape(doc *goquery.Document) {
 			tempFragCount, err := strconv.Atoi(strings.TrimSpace(item2.Find("span.frag-count").Text()))
 			check(err)
 
+			tempID, err := strconv.Atoi(item2.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
+			check(err)
+
 			tempCommentCount := strings.TrimSpace(item2.Find("span.post-count").Text())
+			tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
+			commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
+			check(err)
 
 			thread := Thread{
+				ID:               tempID,
 				Title:            strings.TrimSpace(item2.Find(".thread-item-header-title").Text()),
 				URL:              base_url + item2.Find(".thread-item-header-title").AttrOr("href", ""),
 				FragCount:        tempFragCount,
 				DatePublished:    strings.TrimSpace(item2.Find("span.date-full.hide").Text()),
 				DatePublishedAgo: strings.TrimSpace(item2.Find("span.js-date-toggle.date-eta").Text()),
-				CommentCount:     strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " "),
+				CommentCount:     commentNum,
 			}
 			threads = append(threads, thread)
 		})

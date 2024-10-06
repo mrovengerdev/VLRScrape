@@ -1,8 +1,8 @@
 # Identifying Information
-**Repo Name:** vlrscrape
-**Github Username:** mrovengerdev
-**Name:** Maxwell Rovenger
-**Email:** rovenger.max@gmail.com
+**Repo Name:** vlrscrape<br>
+**Github Username:** mrovengerdev<br>
+**Name:** Maxwell Rovenger<br>
+**Email:** rovenger.max@gmail.com<br>
 
 ## Included Files
 - 
