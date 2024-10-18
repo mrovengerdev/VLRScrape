@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -22,14 +23,14 @@ func fileChecker(fileName string) {
 	if error != nil {
 		log.Println("There was an error opening the file.")
 	} else {
+		fmt.Println("File opened successfully.")
 		defer file.Close()
 	}
 }
 
 // ListBuckets lists the buckets in the current account.
-// ListBuckets lists the buckets in the current account.
 func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
-	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
+	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{}) // I'm referencing a nil pointer
 	var buckets []types.Bucket
 	if err != nil {
 		log.Printf("Couldn't list buckets for your account. Here's why: %v\n", err)
@@ -38,21 +39,6 @@ func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, erro
 	}
 	return buckets, err
 }
-
-// func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
-// 	fmt.Println("Here 1")
-// 	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{}) // ERROR
-// 	fmt.Println("Here 2")
-// 	var buckets []types.Bucket
-// 	fmt.Println("Here 3")
-// 	if err != nil {
-// 		log.Printf("Couldn't list buckets for your account. Here's why: %v\n", err)
-// 	} else {
-// 		buckets = result.Buckets
-// 	}
-// 	fmt.Println("Here 4")
-// 	return buckets, err
-// }
 
 // ListObjects lists the objects in a bucket.
 func (service AWSService) ListObjects(ctx context.Context, bucketName string) ([]types.Object, error) {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 )
 
 /**
@@ -12,16 +14,27 @@ Plan:
  - Upload the file "outputThreads.json"
 **/
 
+func check(err error) {
+	if err != nil {
+		fmt.Println("Error occurred:", err)
+		log.Fatal("Error occurred:", err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	// Check if endpoint can be reached
-	doc := threadPrep("https://www.vlr.gg/threads")
-
+	docThread := threadPrep("https://www.vlr.gg/threads")
 	// Scrape from VLR.gg threads.
-	threadScrape(doc)
+	threadScrape(docThread)
+
+	// Check if endpoint can be reached
+	docMatch := threadPrep("https://www.vlr.gg/matches")
+	// Scrape from VLR.gg matches.
+	matchScrape(docMatch)
 
 	// Retrieve context and search buckets available to given environmental variables.
 	// ctx := context.Background()
-	// AWSService.ListBuckets(AWSService{}, ctx)
-
-	fmt.Println("Scrape complete.")
+	// s3c := AWSService.S3Client
+	// AWSService.ListBuckets(AWSService{S3Client: }, ctx)
 }
