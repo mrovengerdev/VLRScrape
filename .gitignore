@@ -1,5 +1,4 @@
-*.json
-.aws/credentials
-.aws/config
-.aws
 go.*
+.env
+*output
+*.DS_Store
