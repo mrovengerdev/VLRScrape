@@ -3,32 +3,111 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/smithy-go"
+	"github.com/joho/godotenv"
 )
 
 type AWSService struct {
 	S3Client *s3.Client
 }
 
-func fileChecker(fileName string) {
-	file, error := os.Open(fileName)
-	if error != nil {
-		log.Println("There was an error opening the file.")
-	} else {
-		fmt.Println("File opened successfully.")
+type fileWalk chan string
+
+// Traverses files
+func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		f <- path
+	}
+	return nil
+}
+
+// Traverses through all files in the output folder and uploads them to Amazon S3.
+// Does so by retrieving credentials, creating a new S3 client, and parsing through the output folder.
+func upload() {
+	// Retrieve S3 credentials from .env file via godotenv.
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretKey := os.Getenv("AWS_SECRET_KEY")
+	s3Bucket := os.Getenv("AWS_S3_BUCKET")
+
+	if accessKey == "" || secretKey == "" {
+		log.Fatal("AWS credentials not found in .env file")
+	}
+
+	// Retrieve path to output file.
+	localPath, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	localPath = filepath.Join(localPath, "output")
+
+	// Creates SDK configuration
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-west-2"),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")))
+	if err != nil {
+		log.Fatalln("error:", err)
+	}
+
+	client := s3.NewFromConfig(cfg)
+
+	walker := make(fileWalk)
+	go func() {
+		// Gather the files to upload by walking the path recursively
+		if err := filepath.Walk(localPath, walker.Walk); err != nil {
+			log.Fatalln("Walk failed:", err)
+		}
+		close(walker)
+	}()
+
+	// For each file found, walking through output file, upload to Amazon S3
+	uploader := manager.NewUploader(client)
+	for path := range walker {
+		rel, err := filepath.Rel(localPath, path)
+		if err != nil {
+			log.Fatalln("Unable to get relative path:", path, err)
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			log.Println("Failed opening file", path, err)
+			continue
+		}
 		defer file.Close()
+
+		// Upload the file to S3 bucket: vlr-scrape.
+		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket: aws.String(s3Bucket),
+			Key:    aws.String(rel), // WIP: Don't need folders in my S3 bucket.
+			Body:   file,
+			ACL:    "public-read",
+		})
+		if err != nil {
+			log.Fatalln("Failed to upload", path, err)
+		}
+
+		log.Printf("Uploaded the file: %s to S3 location: %s\n", path, result.Location)
 	}
 }
 
-// ListBuckets lists the buckets in the current account.
+// Lists the buckets in the current account.
 func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
 	result, err := service.S3Client.ListBuckets(ctx, &s3.ListBucketsInput{}) // I'm referencing a nil pointer
 	var buckets []types.Bucket
@@ -40,7 +119,7 @@ func (service AWSService) ListBuckets(ctx context.Context) ([]types.Bucket, erro
 	return buckets, err
 }
 
-// ListObjects lists the objects in a bucket.
+// Lists the objects in a bucket.
 func (service AWSService) ListObjects(ctx context.Context, bucketName string) ([]types.Object, error) {
 	result, err := service.S3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),
@@ -54,7 +133,7 @@ func (service AWSService) ListObjects(ctx context.Context, bucketName string) ([
 	return contents, err
 }
 
-// BucketExists checks whether a bucket exists in the current account.
+// Checks whether a bucket exists in the current account.
 func (service AWSService) BucketExists(ctx context.Context, bucketName string) (bool, error) {
 	_, err := service.S3Client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
@@ -80,7 +159,7 @@ func (service AWSService) BucketExists(ctx context.Context, bucketName string) (
 	return exists, err
 }
 
-// UploadFile reads from a file and puts the data into an object in a bucket.
+// Reads from a file and puts the data into an object in a bucket.
 func (service AWSService) UploadFile(ctx context.Context, bucketName string, objectKey string, fileName string) error {
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -100,28 +179,7 @@ func (service AWSService) UploadFile(ctx context.Context, bucketName string, obj
 	return err
 }
 
-// UploadLargeObject uses an upload manager to upload data to an object in a bucket.
-// The upload manager breaks large data into parts and uploads the parts concurrently.
-// func (basics BucketBasics) UploadLargeObject(ctx context.Context, bucketName string, objectKey string, largeObject []byte) error {
-// 	largeBuffer := bytes.NewReader(largeObject)
-// 	var partMiBs int64 = 10
-// 	uploader := manager.NewUploader(basics.S3Client, func(u *manager.Uploader) {
-// 		u.PartSize = partMiBs * 1024 * 1024
-// 	})
-// 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
-// 		Bucket: aws.String(bucketName),
-// 		Key:    aws.String(objectKey),
-// 		Body:   largeBuffer,
-// 	})
-// 	if err != nil {
-// 		log.Printf("Couldn't upload large object to %v:%v. Here's why: %v\n",
-// 			bucketName, objectKey, err)
-// 	}
-
-// 	return err
-// }
-
-// DownloadFile gets an object from a bucket and stores it in a local file.
+// Gets an object from a bucket and stores it in a local file.
 func (basics AWSService) DownloadFile(ctx context.Context, bucketName string, objectKey string, fileName string) error {
 	result, err := basics.S3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
@@ -145,23 +203,3 @@ func (basics AWSService) DownloadFile(ctx context.Context, bucketName string, ob
 	_, err = file.Write(body)
 	return err
 }
-
-// DownloadLargeObject uses a download manager to download an object from a bucket.
-// The download manager gets the data in parts and writes them to a buffer until all of
-// the data has been downloaded.
-// func (basics BucketBasics) DownloadLargeObject(ctx context.Context, bucketName string, objectKey string) ([]byte, error) {
-// 	var partMiBs int64 = 10
-// 	downloader := manager.NewDownloader(basics.S3Client, func(d *manager.Downloader) {
-// 		d.PartSize = partMiBs * 1024 * 1024
-// 	})
-// 	buffer := manager.NewWriteAtBuffer([]byte{})
-// 	_, err := downloader.Download(ctx, buffer, &s3.GetObjectInput{
-// 		Bucket: aws.String(bucketName),
-// 		Key:    aws.String(objectKey),
-// 	})
-// 	if err != nil {
-// 		log.Printf("Couldn't download large object from %v:%v. Here's why: %v\n",
-// 			bucketName, objectKey, err)
-// 	}
-// 	return buffer.Bytes(), err
-// }

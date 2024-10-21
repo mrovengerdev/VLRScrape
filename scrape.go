@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 
 const base_url = "https://www.vlr.gg"
 
+// Makes connection to scraping destination and returns document for parsing
 func threadPrep(url string) *goquery.Document {
 	response, err := http.Get(url)
 	check(err)
@@ -29,6 +31,7 @@ func threadPrep(url string) *goquery.Document {
 	return doc
 }
 
+// Checks if string is an int
 func isInt(teamName string) bool {
 	if _, err := strconv.Atoi(teamName); err == nil {
 		return true
@@ -37,6 +40,17 @@ func isInt(teamName string) bool {
 	}
 }
 
+// Creates output folder to store JSON files
+func createOutputDirectory() {
+	outputPath, err := os.Getwd()
+	check(err)
+	// Create the "output" directory
+	outputDir := filepath.Join(outputPath, "output")
+	err = os.MkdirAll(outputDir, 0755) // Creates directory if it doesn't exist
+	check(err)
+}
+
+// Scrape threads from vlr.gg/threads
 func threadScrape(doc *goquery.Document) {
 
 	type Thread struct {
@@ -84,7 +98,7 @@ func threadScrape(doc *goquery.Document) {
 	jsonData, err := json.MarshalIndent(threads, "", "    ")
 	check(err)
 
-	err = os.WriteFile("outputThreads.json", jsonData, 0644)
+	err = os.WriteFile("output/outputThreads.json", jsonData, 0644)
 	check(err)
 
 	fmt.Println("Thread scrape complete.")
@@ -99,7 +113,8 @@ func dateScrape(doc *goquery.Document) string {
 	return currentDate
 }
 
-func matchScrape(doc *goquery.Document) { // TODO
+// Scrape matches from vlr.gg/matches
+func matchScrape(doc *goquery.Document) {
 
 	type Match struct {
 		ID         int    `json:"id"`
@@ -166,7 +181,7 @@ func matchScrape(doc *goquery.Document) { // TODO
 	jsonData, err := json.MarshalIndent(matches, "", "    ")
 	check(err)
 
-	err = os.WriteFile("outputMatches.json", jsonData, 0644)
+	err = os.WriteFile("output/outputMatches.json", jsonData, 0644)
 	check(err)
 
 	fmt.Println("Match scrape complete.")
