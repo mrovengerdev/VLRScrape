@@ -11,20 +11,15 @@ func check(err error) {
 }
 
 func main() {
-
 	// Creates output folder for JSON files.
 	createOutputDirectory()
 
-	// Check if endpoint can be reached
-	docThread := threadPrep("https://www.vlr.gg/threads")
-	// Scrape VLR.gg threads.
-	threadScrape(docThread)
+	// Scrape from VLR.gg threads.
+	pageParser("https://www.vlr.gg/threads", "/?t=1w", "outputThreads")
 
-	// Check if endpoint can be reached
-	docMatch := threadPrep("https://www.vlr.gg/matches")
-	// Scrape VLR.gg matches.
-	matchScrape(docMatch)
+	// Scrape from VLR.gg matches.
+	pageParser("https://www.vlr.gg/matches", "/?", "outputMatches")
 
 	// Upload output files to Amazon S3 bucket: "vlr-scrape".
-	upload()
+	// upload()
 }
