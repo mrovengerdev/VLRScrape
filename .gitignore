@@ -1,4 +1,3 @@
-go.*
 .env
 *output
 .DS_Store
