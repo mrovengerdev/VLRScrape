@@ -1,6 +1,7 @@
 # VLRSCRAPE
 A Go (golang) scraper for the vlr.gg website (which loads its credentials from a .env file using the godotenv library).
 
+
 ## Functionality
  - Scrape the front page of threads
  - Scrape the front page of upcoming matches
@@ -10,7 +11,7 @@ A Go (golang) scraper for the vlr.gg website (which loads its credentials from a
 ## Installation
 go get github.com/mrovengerdev/vlrscrape
 
-  
+
 ## Usage
 Create a .env file which stores your environmental variables like so:
 
@@ -26,3 +27,8 @@ To run the program:
 **Name:** Maxwell Rovenger
 **Github Username:** mrovengerdev
 **Email:** rovenger.max@gmail.com
+
+# Future Features
+- Add scheduler for scraping so bucket stays up to date.
+- Ranking --> Events --> Stats scraping
+- Optimization/Refactoring for dateScraper
