@@ -21,5 +21,12 @@ func main() {
 	pageParser("https://www.vlr.gg/matches", "/?", "outputMatches")
 
 	// Upload output files to Amazon S3 bucket: "vlr-scrape".
-	// upload()
+	upload()
 }
+
+/*
+Plan on features to add:
+- Add scheduler for scraping so bucket stays up to date.
+	- Concurrency for faster scraping if possible
+	- Ranking --> Events --> Stats scraping
+*/

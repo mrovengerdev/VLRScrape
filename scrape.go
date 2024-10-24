@@ -51,11 +51,8 @@ func createOutputDirectory() {
 	check(err)
 }
 
-// TODO: allow for the thread parser to go through for any number of pages for inputted param designating how many days.
-// Likely just go for a number of threads instead since
-
 // Scrape threads from vlr.gg/threads. Returns JSON data as []byte.
-func threadScrape(doc *goquery.Document) []byte {
+func threadScrape(currentPage int, doc *goquery.Document) []byte {
 	type Thread struct {
 		ID               int    `json:"id"`
 		Title            string `json:"title"`
@@ -68,31 +65,61 @@ func threadScrape(doc *goquery.Document) []byte {
 
 	var threads []Thread
 
+	// Needs performance improvement:
+	// Retrieves the first 3 threads only for the first page, since they repeat on every page.
 	doc.Find("div.thread.wf-module-item.mod-color.mod-left.mod-bg-after-.unread").Each(func(index int, item *goquery.Selection) { // Two wf-cards so double for-loop required
+		// Ignore first 3 posts since they are always the same
+		if currentPage == 1 {
+			// Upvote count processing (string to int)
+			tempFragCount, err := strconv.Atoi(strings.TrimSpace(item.Find("span.frag-count").Text()))
+			check(err)
+			tempID, err := strconv.Atoi(item.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
+			check(err)
 
-		// Upvote count processing (string to int)
-		tempFragCount, err := strconv.Atoi(strings.TrimSpace(item.Find("span.frag-count").Text()))
-		check(err)
-		tempID, err := strconv.Atoi(item.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
-		check(err)
+			// Comment count processing (string to int)
+			tempCommentCount := strings.TrimSpace(item.Find("span.post-count").Text())
+			tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
+			commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
+			check(err)
 
-		// Comment count processing (string to int)
-		tempCommentCount := strings.TrimSpace(item.Find("span.post-count").Text())
-		tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
-		commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
-		check(err)
+			thread := Thread{
+				ID:               tempID,
+				Title:            strings.TrimSpace(item.Find(".thread-item-header-title").Text()),
+				MatchURL:         base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
+				FragCount:        tempFragCount,
+				DatePublished:    strings.TrimSpace(item.Find("span.date-full.hide").Text()),
+				DatePublishedAgo: strings.TrimSpace(item.Find("span.js-date-toggle.date-eta").Text()),
+				CommentCount:     commentNum,
+			}
 
-		thread := Thread{
-			ID:               tempID,
-			Title:            strings.TrimSpace(item.Find(".thread-item-header-title").Text()),
-			MatchURL:         base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
-			FragCount:        tempFragCount,
-			DatePublished:    strings.TrimSpace(item.Find("span.date-full.hide").Text()),
-			DatePublishedAgo: strings.TrimSpace(item.Find("span.js-date-toggle.date-eta").Text()),
-			CommentCount:     commentNum,
+			threads = append(threads, thread)
+		} else {
+			if index > 2 {
+				// Upvote count processing (string to int)
+				tempFragCount, err := strconv.Atoi(strings.TrimSpace(item.Find("span.frag-count").Text()))
+				check(err)
+				tempID, err := strconv.Atoi(item.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
+				check(err)
+
+				// Comment count processing (string to int)
+				tempCommentCount := strings.TrimSpace(item.Find("span.post-count").Text())
+				tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
+				commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
+				check(err)
+
+				thread := Thread{
+					ID:               tempID,
+					Title:            strings.TrimSpace(item.Find(".thread-item-header-title").Text()),
+					MatchURL:         base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
+					FragCount:        tempFragCount,
+					DatePublished:    strings.TrimSpace(item.Find("span.date-full.hide").Text()),
+					DatePublishedAgo: strings.TrimSpace(item.Find("span.js-date-toggle.date-eta").Text()),
+					CommentCount:     commentNum,
+				}
+
+				threads = append(threads, thread)
+			}
 		}
-
-		threads = append(threads, thread)
 	})
 
 	// Converts data format to JSON
@@ -220,7 +247,7 @@ func pageParser(base_url string, header string, outputFileName string) {
 
 			switch base_url {
 			case "https://www.vlr.gg/threads":
-				currentPageScrape = threadScrape(document)
+				currentPageScrape = threadScrape(currentPage, document)
 			case "https://www.vlr.gg/matches":
 				currentPageScrape = matchScrape(document)
 			default:
@@ -236,13 +263,14 @@ func pageParser(base_url string, header string, outputFileName string) {
 		}
 	}
 
-	// Write the JSON data to a file.
-	file, err := os.OpenFile("output/"+outputFileName+".json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// Create the output file.
+	file, err := os.Create("output/" + outputFileName + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
+	// Write the JSON data to a file.
 	for i := 0; i < len(totalScrape); i++ {
 		if _, err := file.Write(totalScrape[i]); err != nil {
 			log.Fatal(err)
@@ -252,6 +280,7 @@ func pageParser(base_url string, header string, outputFileName string) {
 	fileFix("output/" + outputFileName + ".json")
 }
 
+// Properly joins all of the JSON files into one via handling excessive brackets.
 func fileFix(fileName string) {
 	file, err := os.ReadFile(fileName)
 	check(err)
@@ -263,6 +292,3 @@ func fileFix(fileName string) {
 	check(err)
 
 }
-
-// Current errors:
-// 1. Threads are repeating themselves by harvesting the top 4 over and over.
