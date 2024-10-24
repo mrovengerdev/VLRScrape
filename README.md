@@ -32,6 +32,7 @@ To run the program:
 **Email:** rovenger.max@gmail.com  
 
 # Future Features
+- Make error handling unique instead of boiler plate.
 - Add scheduler for scraping so bucket stays up to date.  
 - Ranking --> Events --> Stats scraping  
 - Optimization/Refactoring for dateScraper  

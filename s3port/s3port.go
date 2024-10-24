@@ -1,4 +1,4 @@
-package main
+package s3port
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 
 // Traverses through all files in the output folder and uploads them to Amazon S3.
 // Does so by retrieving credentials, creating a new S3 client, and parsing through the output folder.
-func upload() {
+func Upload() {
 	// Retrieve S3 credentials from .env file via godotenv.
 	err := godotenv.Load()
 	if err != nil {

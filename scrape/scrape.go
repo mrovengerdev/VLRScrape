@@ -1,4 +1,4 @@
-package main
+package scrape
 
 import (
 	"encoding/json"
@@ -18,7 +18,9 @@ const base_url = "https://www.vlr.gg"
 // Makes connection to scraping destination and returns document for parsing
 func scrapePrep(url string) *goquery.Document {
 	response, err := http.Get(url)
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 200 {
@@ -28,7 +30,9 @@ func scrapePrep(url string) *goquery.Document {
 	}
 
 	doc, err := goquery.NewDocumentFromReader(response.Body)
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 	return doc
 }
 
@@ -42,13 +46,17 @@ func isInt(teamName string) bool {
 }
 
 // Creates output folder to store JSON files
-func createOutputDirectory() {
+func CreateOutputDirectory() {
 	outputPath, err := os.Getwd()
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 	// Create the "output" directory
 	outputDir := filepath.Join(outputPath, "output")
 	err = os.MkdirAll(outputDir, 0755) // Creates directory if it doesn't exist
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 }
 
 // Scrape threads from vlr.gg/threads. Returns JSON data as []byte.
@@ -72,15 +80,21 @@ func threadScrape(currentPage int, doc *goquery.Document) []byte {
 		if currentPage == 1 {
 			// Upvote count processing (string to int)
 			tempFragCount, err := strconv.Atoi(strings.TrimSpace(item.Find("span.frag-count").Text()))
-			check(err)
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
 			tempID, err := strconv.Atoi(item.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
-			check(err)
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
 
 			// Comment count processing (string to int)
 			tempCommentCount := strings.TrimSpace(item.Find("span.post-count").Text())
 			tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
 			commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
-			check(err)
+			if err != nil {
+				log.Fatalf("Error: %v", err)
+			}
 
 			thread := Thread{
 				ID:               tempID,
@@ -97,15 +111,21 @@ func threadScrape(currentPage int, doc *goquery.Document) []byte {
 			if index > 2 {
 				// Upvote count processing (string to int)
 				tempFragCount, err := strconv.Atoi(strings.TrimSpace(item.Find("span.frag-count").Text()))
-				check(err)
+				if err != nil {
+					log.Fatalf("Error: %v", err)
+				}
 				tempID, err := strconv.Atoi(item.Find("div.block.frag.frag-container.noselect.neutral").AttrOr("data-thread-id", ""))
-				check(err)
+				if err != nil {
+					log.Fatalf("Error: %v", err)
+				}
 
 				// Comment count processing (string to int)
 				tempCommentCount := strings.TrimSpace(item.Find("span.post-count").Text())
 				tempCommentCount = strings.ReplaceAll(tempCommentCount, "\t\t\t\t\t\t\t\t\t\t\t\t\t", " ")
 				commentNum, err := strconv.Atoi(strings.Split(tempCommentCount, " ")[0])
-				check(err)
+				if err != nil {
+					log.Fatalf("Error: %v", err)
+				}
 
 				thread := Thread{
 					ID:               tempID,
@@ -124,7 +144,9 @@ func threadScrape(currentPage int, doc *goquery.Document) []byte {
 
 	// Converts data format to JSON
 	jsonData, err := json.MarshalIndent(threads, "", "    ")
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	fmt.Println("Thread scrape complete.")
 
@@ -148,7 +170,9 @@ func findLastPage(doc *goquery.Document) int {
 		lastPage = item.Text()
 	})
 	lastPageInt, err := strconv.Atoi(lastPage)
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	return lastPageInt
 }
@@ -174,7 +198,9 @@ func matchScrape(doc *goquery.Document) []byte {
 		tempID := item.AttrOr("href", "")
 		tempID = strings.Split(tempID, "/")[1]
 		intTempID, err := strconv.Atoi(tempID)
-		check(err)
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
 
 		// Retrieve team names and trim spaces & \t
 		tempTeam := strings.TrimSpace(item.Find("div.match-item-vs-team").Text())
@@ -217,7 +243,9 @@ func matchScrape(doc *goquery.Document) []byte {
 
 	// Converts data format to JSON
 	jsonData, err := json.MarshalIndent(matches, "", "    ")
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	fmt.Println("Match scrape complete.")
 
@@ -226,7 +254,7 @@ func matchScrape(doc *goquery.Document) []byte {
 
 // Conducts scraping for the total number of pages available to the given base_url.
 // For every new scrape added, the switch statement must be edited to cover it.
-func pageParser(base_url string, header string, outputFileName string) {
+func PageParser(base_url string, header string, outputFileName string) {
 	// Stores page of scraped data per index
 	var totalScrape = [][]byte{}
 	// Stores the current page of scraped data
@@ -283,12 +311,16 @@ func pageParser(base_url string, header string, outputFileName string) {
 // Properly joins all of the JSON files into one via handling excessive brackets.
 func fileFix(fileName string) {
 	file, err := os.ReadFile(fileName)
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	allText := string(file)
 	allText = strings.ReplaceAll(allText, "    }\n][\n    {", "    },\n    {")
 
 	err = os.WriteFile(fileName, []byte(allText), 0644)
-	check(err)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 }
