@@ -31,7 +31,7 @@ func (f fileWalk) Walk(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-// Traverses through all files in the output folder and uploads them to Amazon S3.
+// Traverses through all files in the output folder through fileWalk and uploads them to Amazon S3.
 // Does so by retrieving credentials, creating a new S3 client, and parsing through the output folder.
 func Upload() {
 	// Retrieve S3 credentials from .env file via godotenv.
@@ -88,7 +88,7 @@ func Upload() {
 		}
 		defer file.Close()
 
-		// Upload the file to S3 bucket: vlr-scrape.
+		// Upload the file to S3 bucket given in .env file.
 		result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(s3Bucket),
 			Key:    aws.String(rel), // WIP: Don't need folders in my S3 bucket.

@@ -6,17 +6,17 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/mrovengerdev/vlrscrape/scrapetools"
 )
 
 const base_url = "https://www.vlr.gg"
 
 // Makes connection to scraping destination and returns document for parsing
-func scrapePrep(url string) *goquery.Document {
+func ScrapePrep(url string) *goquery.Document {
 	response, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
@@ -34,29 +34,6 @@ func scrapePrep(url string) *goquery.Document {
 		log.Fatalf("Error: %v", err)
 	}
 	return doc
-}
-
-// Checks if string is an int
-func isInt(teamName string) bool {
-	if _, err := strconv.Atoi(teamName); err == nil {
-		return true
-	} else {
-		return false
-	}
-}
-
-// Creates output folder to store JSON files
-func CreateOutputDirectory() {
-	outputPath, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	// Create the "output" directory
-	outputDir := filepath.Join(outputPath, "output")
-	err = os.MkdirAll(outputDir, 0755) // Creates directory if it doesn't exist
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
 }
 
 // Scrape threads from vlr.gg/threads. Returns JSON data as []byte.
@@ -162,21 +139,6 @@ func dateScrape(doc *goquery.Document) string {
 	return currentDate
 }
 
-// Retrieves the number of the last page of threads containing unique threads.
-// Only way since pages out of bounds will still contain the top 4 posts.
-func findLastPage(doc *goquery.Document) int {
-	lastPage := ""
-	doc.Find("a.btn.mod-page").Each(func(index int, item *goquery.Selection) {
-		lastPage = item.Text()
-	})
-	lastPageInt, err := strconv.Atoi(lastPage)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-
-	return lastPageInt
-}
-
 // Scrape matches from vlr.gg/matches
 func matchScrape(doc *goquery.Document) []byte {
 	type Match struct {
@@ -211,7 +173,7 @@ func matchScrape(doc *goquery.Document) []byte {
 		tempTeam2 := strings.Split(tempTeam, "\n\n\n")[3]
 
 		// Checks if team2's name is team1's score. If so, then the team name is the second element.
-		if isInt(tempTeam2) {
+		if scrapetools.IsInt(tempTeam2) {
 			tempTeam2 = strings.Split(tempTeam, "\n\n\n")[2]
 			tempTeam2 = strings.ReplaceAll(tempTeam2, "\n", "")
 		}
@@ -226,7 +188,7 @@ func matchScrape(doc *goquery.Document) []byte {
 		matchURL := base_url + item.AttrOr("href", "")
 
 		// For each match, got to the match page, and retrieve the match date at the top right.
-		dateDoc := scrapePrep(matchURL)
+		dateDoc := ScrapePrep(matchURL)
 
 		match := Match{
 			Tournament:     strings.ReplaceAll(strings.TrimSpace(item.Find("div.match-item-event-series.text-of").Text()), "–", " "),
@@ -252,9 +214,66 @@ func matchScrape(doc *goquery.Document) []byte {
 	return jsonData
 }
 
-// Conducts scraping for the total number of pages available to the given base_url.
+// Scrape leaderboard rankings and team info from vlr.gg/teams
+func RankingScrape(doc *goquery.Document) {
+	type Ranking struct {
+		Rank     int    `json:"rank"`
+		TeamName string `json:"team_name"`
+		ELO      int    `json:"elo"`
+		Region   string `json:"region"`
+		URL      string `json:"url"`
+	}
+
+	var rankings []Ranking
+
+	doc.Find("tr.wf-card.mod-hover").Each(func(index int, item *goquery.Selection) {
+
+		tempELO, err := strconv.Atoi(strings.TrimSpace(item.Find("td.rank-item-rating.mod-world a").Text()))
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+
+		ranking := Ranking{
+			Rank:     (index % 10) + 1,
+			TeamName: item.Find("td.rank-item-team").AttrOr("data-sort-value", ""),
+			ELO:      tempELO,
+			Region:   item.Find("div.rank-item-team-country").Text(),
+			URL:      base_url + item.Find("td.rank-item-team a").AttrOr("href", ""),
+		}
+
+		rankings = append(rankings, ranking)
+	})
+
+	// Converts data format to JSON
+	jsonData, err := json.MarshalIndent(rankings, "", "    ")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+
+	os.WriteFile("output/outputRankings.json", jsonData, 0644)
+
+	fmt.Println("Match scrape complete.")
+}
+
+// Retrieves the number of the last page of threads containing unique threads.
+// Only way since pages out of bounds will still contain the top 4 posts.
+// Verify that the doc.Find() location works for future scrapes.
+func findLastPage(doc *goquery.Document) int {
+	lastPage := ""
+	doc.Find("a.btn.mod-page").Each(func(index int, item *goquery.Selection) {
+		lastPage = item.Text()
+	})
+	lastPageInt, err := strconv.Atoi(lastPage)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+
+	return lastPageInt
+}
+
+// Conducts scraping for the total number of pages available to the given section_url.
 // For every new scrape added, the switch statement must be edited to cover it.
-func PageParser(base_url string, header string, outputFileName string) {
+func PageParser(section_url string, header string, outputFileName string) {
 	// Stores page of scraped data per index
 	var totalScrape = [][]byte{}
 	// Stores the current page of scraped data
@@ -264,16 +283,16 @@ func PageParser(base_url string, header string, outputFileName string) {
 	pageExists := true
 
 	// The class that gives the last page changes when scraping the last page. So before looping, it must be retrieved.
-	prepDocument := scrapePrep(base_url + header)
+	prepDocument := ScrapePrep(section_url + header)
 	lastPage := findLastPage(prepDocument)
 
 	// For every page, scrape the data and append it to the totalScrape slice.
 	for pageExists {
 		if currentPage <= lastPage {
-			url := fmt.Sprintf("%s%s&page=%d", base_url, header, currentPage)
-			document := scrapePrep(url)
+			url := fmt.Sprintf("%s%s&page=%d", section_url, header, currentPage)
+			document := ScrapePrep(url)
 
-			switch base_url {
+			switch section_url {
 			case "https://www.vlr.gg/threads":
 				currentPageScrape = threadScrape(currentPage, document)
 			case "https://www.vlr.gg/matches":
@@ -305,22 +324,5 @@ func PageParser(base_url string, header string, outputFileName string) {
 		}
 	}
 
-	fileFix("output/" + outputFileName + ".json")
-}
-
-// Properly joins all of the JSON files into one via handling excessive brackets.
-func fileFix(fileName string) {
-	file, err := os.ReadFile(fileName)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-
-	allText := string(file)
-	allText = strings.ReplaceAll(allText, "    }\n][\n    {", "    },\n    {")
-
-	err = os.WriteFile(fileName, []byte(allText), 0644)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-
+	scrapetools.FileFix("output/" + outputFileName + ".json")
 }
