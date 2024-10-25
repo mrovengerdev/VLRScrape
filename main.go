@@ -1,25 +1,44 @@
 package main
 
 import (
-	"log"
+	"github.com/mrovengerdev/vlrscrape/s3port"
+	"github.com/mrovengerdev/vlrscrape/scrape"
+	"github.com/mrovengerdev/vlrscrape/scrapetools"
 )
 
-func check(err error) {
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-}
-
 func main() {
+
 	// Creates output folder for JSON files.
-	createOutputDirectory()
+	scrapetools.CreateOutputDirectory()
 
 	// Scrape from VLR.gg threads.
-	pageParser("https://www.vlr.gg/threads", "/?t=1w", "outputThreads")
+	scrape.PageParser("https://www.vlr.gg/threads", "/?t=1w", "outputThreads")
 
 	// Scrape from VLR.gg matches.
-	pageParser("https://www.vlr.gg/matches", "/?", "outputMatches")
+	scrape.PageParser("https://www.vlr.gg/matches", "/?", "outputMatches")
+
+	// Scrape from VLR.gg teams.
+	prepDocument := scrape.ScrapePrep("https://www.vlr.gg/teams" + "")
+	scrape.RankingScrape(prepDocument)
 
 	// Upload output files to Amazon S3 bucket: "vlr-scrape".
-	upload()
+	s3port.Upload()
+
+	// Scheduled version of the main method.
+	// Scheduler runs the program at 6:00AM, 12:00PM, 6:00PM, and 12:00AM.
+	// c := cron.New()
+	// c.AddFunc("0 */6 * * *", func() {
+	// 	// Creates output folder for JSON files.
+	// 	scrape.CreateOutputDirectory()
+
+	// 	// Scrape from VLR.gg threads.
+	// 	scrape.PageParser("https://www.vlr.gg/threads", "/?t=1w", "outputThreads")
+
+	// 	// Scrape from VLR.gg matches.
+	// 	scrape.PageParser("https://www.vlr.gg/matches", "/?", "outputMatches")
+
+	// 	// Upload output files to Amazon S3 bucket: "vlr-scrape".
+	// 	s3port.Upload()
+	// })
+	// c.Start()
 }

@@ -3,12 +3,16 @@ A Go (golang) scraper for the vlr.gg website (which loads its credentials from a
 
 
 ## Functionality
- - Scrape VLR forum threads.  
-    - Specify in pageParser argument the header to decide the time table you want to scrape from.  
- - Scrape VLR upcoming matches.  
-    - Specify in pageParser argument the header to decide the time table you want to scrape from.  
- - Upload the retrieved data to a specified S3 bucket.  
-    - Bucket destination stated in .env file.  
+- Scheduler
+   - Can uncomment scheduler to run this scraper at 6:00AM, 12:00PM, 6:00PM, and 12:00AM every day.
+- Scrape VLR forum threads.  
+   - Specify in pageParser argument the header to decide the time table you want to scrape from.  
+- Scrape VLR upcoming matches.  
+   - Specify in pageParser argument the header to decide the time table you want to scrape from.  
+- Scrape VLR leaderboards.
+   - Note: Region does not specify the league they play in. Just their origin region.
+- Upload the retrieved data to a specified S3 bucket.  
+   - Bucket destination stated in .env file.  
 
 
 ## Installation
@@ -32,6 +36,6 @@ To run the program:
 **Email:** rovenger.max@gmail.com  
 
 # Future Features
-- Add scheduler for scraping so bucket stays up to date.  
-- Ranking --> Events --> Stats scraping  
-- Optimization/Refactoring for dateScraper  
+- Improve error handling messages.
+- Events --> Stats scraping.
+- Optimization/Refactoring for dateScraper
