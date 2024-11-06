@@ -37,9 +37,9 @@ type Match struct {
 
 type Ranking struct {
 	Rank     int    `json:"rank"`
+	Region   string `json:"region"`
 	TeamName string `json:"team_name"`
 	ELO      int    `json:"elo"`
-	Region   string `json:"region"`
 	TeamURL  string `json:"team_url"`
 }
 
@@ -225,24 +225,29 @@ func matchScrape(doc *goquery.Document) []byte {
 	return jsonData
 }
 
-// Scrape leaderboard rankings and team info from vlr.gg/teams
-func RankingScrape(doc *goquery.Document) {
+// Scrape leaderboard rankings and team info from vlr.gg/rankings
+func rankingScrape(doc *goquery.Document, region string) {
 
 	var rankings []Ranking
 
-	doc.Find("tr.wf-card.mod-hover").Each(func(index int, item *goquery.Selection) {
+	doc.Find("div.rank-item.wf-card.fc-flex").Each(func(index int, item *goquery.Selection) {
 
-		tempELO, err := strconv.Atoi(strings.TrimSpace(item.Find("td.rank-item-rating.mod-world a").Text()))
+		tempRank, err := strconv.Atoi(strings.TrimSpace(item.Find("div.rank-item-rank-num").Text()))
+		if err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+
+		tempELO, err := strconv.Atoi(item.Find("div.rank-item-rating").AttrOr("data-sort-value", ""))
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 
 		ranking := Ranking{
-			Rank:     (index % 10) + 1,
-			TeamName: item.Find("td.rank-item-team").AttrOr("data-sort-value", ""),
+			Rank:     tempRank,
+			TeamName: item.Find("a.rank-item-team.fc-flex").AttrOr("data-sort-value", ""),
 			ELO:      tempELO,
-			Region:   item.Find("div.rank-item-team-country").Text(),
-			TeamURL:  base_url + item.Find("td.rank-item-team a").AttrOr("href", ""),
+			Region:   scrapetools.Filter(region, "-", " "),
+			TeamURL:  base_url + item.Find("a.rank-item-team.fc-flex").AttrOr("href", ""),
 		}
 
 		rankings = append(rankings, ranking)
@@ -254,9 +259,28 @@ func RankingScrape(doc *goquery.Document) {
 		log.Fatalf("Error: %v", err)
 	}
 
-	os.WriteFile("output/outputRankings.json", jsonData, 0644)
+	os.WriteFile("output/output_"+region+"Rankings"+".json", jsonData, 0644)
+}
 
-	fmt.Println("Match scrape complete.")
+// Scrapes the rankings from all regions by using the rankingScrape for each region.
+func AllRankingScrape(doc *goquery.Document) {
+	doc.Find("a.wf-nav-item.mod-collapsible").Each(func(index int, item *goquery.Selection) {
+
+		// Retrieve the region name and filter out any unnecessary characters.
+		region := strings.TrimSpace(item.Find("span.normal").Text())
+		scrapetools.Filter(region, "\t", "")
+		scrapetools.Filter(region, "\n", "")
+
+		// Use rankingScrape at the region URL.
+		if region != "World" && region != "" {
+			rankingURL := base_url + "/rankings/" + region
+			rankingDoc := ScrapePrep(rankingURL)
+			rankingScrape(rankingDoc, region)
+		}
+
+	})
+
+	fmt.Println("Ranking scrape complete.")
 }
 
 // Retrieves the number of the last page of threads containing unique threads.
