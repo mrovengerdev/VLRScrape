@@ -1,4 +1,4 @@
-# VLRSCRAPE
+# VLRScrape
 A Go (golang) scraper for the vlr.gg website (which loads its credentials from a .env file using the godotenv library).
 
 
@@ -13,6 +13,8 @@ A Go (golang) scraper for the vlr.gg website (which loads its credentials from a
    - Note: Region does not specify the league they play in. Just their origin region.
 - Upload the retrieved data to a specified S3 bucket.  
    - Bucket destination stated in .env file.  
+- REST API
+   - Following the retrieval of all endpoints, a REST API is enabled which allows for the retrieval of any folder through the base endpoint http://localhost:8080/.
 
 
 ## Installation
@@ -30,12 +32,14 @@ To run the program:
 - go run .
 
 
+## Future Features
+- Improve error handling messages.
+- Events --> Stats scraping.
+- Optimization/Refactoring for dateScraper
+- Remove need for TrimSpace by adding .AttrOr
+
+
 # Relevant/Contact Information
 **Name:** Maxwell Rovenger  
 **Github Username:** mrovengerdev  
 **Email:** rovenger.max@gmail.com  
-
-# Future Features
-- Improve error handling messages.
-- Events --> Stats scraping.
-- Optimization/Refactoring for dateScraper

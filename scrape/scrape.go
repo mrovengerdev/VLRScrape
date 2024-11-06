@@ -13,9 +13,39 @@ import (
 	"github.com/mrovengerdev/vlrscrape/scrapetools"
 )
 
+// Struct Catalog
+type Thread struct {
+	ID               int    `json:"id"`
+	Title            string `json:"title"`
+	ThreadURL        string `json:"thread_url"`
+	FragCount        int    `json:"frag_count"`
+	DatePublished    string `json:"date_published"`
+	DatePublishedAgo string `json:"date_published_ago"`
+	CommentCount     int    `json:"comment_count"`
+}
+
+type Match struct {
+	ID             int    `json:"id"`
+	MatchURL       string `json:"match_url"`
+	Tournament     string `json:"tournament"`
+	Team1          string `json:"team1"`
+	Team2          string `json:"team2"`
+	Date           string `json:"date"`
+	MatchTime      string `json:"match_time"`
+	TimeUntilMatch string `json:"time_until_match"` // Time until match
+}
+
+type Ranking struct {
+	Rank     int    `json:"rank"`
+	TeamName string `json:"team_name"`
+	ELO      int    `json:"elo"`
+	Region   string `json:"region"`
+	TeamURL  string `json:"team_url"`
+}
+
 const base_url = "https://www.vlr.gg"
 
-// Makes connection to scraping destination and returns document for parsing
+// Makes connection to scraping destination and returns document for parsing.
 func ScrapePrep(url string) *goquery.Document {
 	response, err := http.Get(url)
 	if err != nil {
@@ -38,15 +68,6 @@ func ScrapePrep(url string) *goquery.Document {
 
 // Scrape threads from vlr.gg/threads. Returns JSON data as []byte.
 func threadScrape(currentPage int, doc *goquery.Document) []byte {
-	type Thread struct {
-		ID               int    `json:"id"`
-		Title            string `json:"title"`
-		MatchURL         string `json:"match_url"`
-		FragCount        int    `json:"frag_count"`
-		DatePublished    string `json:"date_published"`
-		DatePublishedAgo string `json:"date_published_ago"`
-		CommentCount     int    `json:"comment_count"`
-	}
 
 	var threads []Thread
 
@@ -76,7 +97,7 @@ func threadScrape(currentPage int, doc *goquery.Document) []byte {
 			thread := Thread{
 				ID:               tempID,
 				Title:            strings.TrimSpace(item.Find(".thread-item-header-title").Text()),
-				MatchURL:         base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
+				ThreadURL:        base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
 				FragCount:        tempFragCount,
 				DatePublished:    strings.TrimSpace(item.Find("span.date-full.hide").Text()),
 				DatePublishedAgo: strings.TrimSpace(item.Find("span.js-date-toggle.date-eta").Text()),
@@ -107,7 +128,7 @@ func threadScrape(currentPage int, doc *goquery.Document) []byte {
 				thread := Thread{
 					ID:               tempID,
 					Title:            strings.TrimSpace(item.Find(".thread-item-header-title").Text()),
-					MatchURL:         base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
+					ThreadURL:        base_url + item.Find(".thread-item-header-title").AttrOr("href", ""),
 					FragCount:        tempFragCount,
 					DatePublished:    strings.TrimSpace(item.Find("span.date-full.hide").Text()),
 					DatePublishedAgo: strings.TrimSpace(item.Find("span.js-date-toggle.date-eta").Text()),
@@ -141,16 +162,6 @@ func dateScrape(doc *goquery.Document) string {
 
 // Scrape matches from vlr.gg/matches
 func matchScrape(doc *goquery.Document) []byte {
-	type Match struct {
-		ID             int    `json:"id"`
-		URL            string `json:"url"`
-		Tournament     string `json:"tournament"`
-		Team1          string `json:"team1"`
-		Team2          string `json:"team2"`
-		Date           string `json:"date"`
-		MatchTime      string `json:"match_time"`
-		TimeUntilMatch string `json:"time_until_match"` // Time until match
-	}
 
 	var matches []Match
 
@@ -193,7 +204,7 @@ func matchScrape(doc *goquery.Document) []byte {
 		match := Match{
 			Tournament:     strings.ReplaceAll(strings.TrimSpace(item.Find("div.match-item-event-series.text-of").Text()), "–", " "),
 			ID:             intTempID,
-			URL:            matchURL,
+			MatchURL:       matchURL,
 			Team1:          tempTeam1,
 			Team2:          tempTeam2,
 			Date:           dateScrape(dateDoc),
@@ -216,13 +227,6 @@ func matchScrape(doc *goquery.Document) []byte {
 
 // Scrape leaderboard rankings and team info from vlr.gg/teams
 func RankingScrape(doc *goquery.Document) {
-	type Ranking struct {
-		Rank     int    `json:"rank"`
-		TeamName string `json:"team_name"`
-		ELO      int    `json:"elo"`
-		Region   string `json:"region"`
-		URL      string `json:"url"`
-	}
 
 	var rankings []Ranking
 
@@ -238,7 +242,7 @@ func RankingScrape(doc *goquery.Document) {
 			TeamName: item.Find("td.rank-item-team").AttrOr("data-sort-value", ""),
 			ELO:      tempELO,
 			Region:   item.Find("div.rank-item-team-country").Text(),
-			URL:      base_url + item.Find("td.rank-item-team a").AttrOr("href", ""),
+			TeamURL:  base_url + item.Find("td.rank-item-team a").AttrOr("href", ""),
 		}
 
 		rankings = append(rankings, ranking)
