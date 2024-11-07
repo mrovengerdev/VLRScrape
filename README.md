@@ -3,17 +3,17 @@ A Go (golang) scraper for the vlr.gg website (which loads its credentials from a
 
 
 ## Functionality
-- Scheduler
-   - Can uncomment scheduler to run this scraper at 6:00AM, 12:00PM, 6:00PM, and 12:00AM every day.
+- Scheduler  
+   - Can uncomment scheduler to run this scraper at 6:00AM, 12:00PM, 6:00PM, and 12:00AM every day.  
 - Scrape VLR forum threads.  
    - Specify in pageParser argument the header to decide the time table you want to scrape from.  
 - Scrape VLR upcoming matches.  
    - Specify in pageParser argument the header to decide the time table you want to scrape from.  
-- Scrape VLR leaderboards.
-   - Note: Region does not specify the league they play in. Just their origin region.
+- Scrape VLR rankings per region.  
+   - In beta for VLR so current endpoint may be deprecated. Works as of 11/6/2024.  
 - Upload the retrieved data to a specified S3 bucket.  
    - Bucket destination stated in .env file.  
-- REST API
+- REST API  
    - Following the retrieval of all endpoints, a REST API is enabled which allows for the retrieval of any folder through the base endpoint http://localhost:8080/.
 
 
@@ -34,9 +34,9 @@ To run the program:
 
 ## Future Features
 - Improve error handling messages.
-- Events --> Stats scraping.
-- Optimization/Refactoring for dateScraper
-- Remove need for TrimSpace by adding .AttrOr
+- Stats Scraping
+- Optimization/Refactoring for dateScraper (Currently has to access the link for all matches to find the date.)
+- Refactor trimming to improve readability
 
 
 # Relevant/Contact Information
