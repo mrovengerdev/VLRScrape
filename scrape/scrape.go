@@ -259,7 +259,8 @@ func rankingScrape(doc *goquery.Document, region string) {
 		log.Fatalf("Error: %v", err)
 	}
 
-	os.WriteFile("output/output_"+region+"Rankings"+".json", jsonData, 0644)
+	// Writes JSON data into new/existing JSON file.
+	os.WriteFile("output/ranking/output"+region+"Rankings"+".json", jsonData, 0644)
 }
 
 // Scrapes the rankings from all regions by using the rankingScrape for each region.
@@ -268,8 +269,9 @@ func AllRankingScrape(doc *goquery.Document) {
 
 		// Retrieve the region name and filter out any unnecessary characters.
 		region := strings.TrimSpace(item.Find("span.normal").Text())
-		scrapetools.Filter(region, "\t", "")
-		scrapetools.Filter(region, "\n", "")
+		region = scrapetools.Filter(region, " ", "-")
+
+		fmt.Println(region)
 
 		// Use rankingScrape at the region URL.
 		if region != "World" && region != "" {

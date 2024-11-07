@@ -42,15 +42,16 @@ func FileFix(fileName string) {
 }
 
 // Creates output folder to store JSON files
-func CreateOutputDirectory() {
+func CreateDirectory(folderName string) {
 	outputPath, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 	// Create the "output" directory
-	outputDir := filepath.Join(outputPath, "output")
+	outputDir := filepath.Join(outputPath, folderName)
 	err = os.MkdirAll(outputDir, 0755) // Creates directory if it doesn't exist
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
+
 }
