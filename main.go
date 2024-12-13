@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/mrovengerdev/vlrscrape/restAPI"
-	"github.com/mrovengerdev/vlrscrape/s3port"
 	"github.com/mrovengerdev/vlrscrape/scrape"
 	"github.com/mrovengerdev/vlrscrape/scrapetools"
 )
@@ -24,10 +22,10 @@ func main() {
 	scrape.AllRankingScrape(prepDocument)
 
 	// Upload output files to Amazon S3 bucket: "vlr-scrape".
-	s3port.Upload()
+	// s3port.Upload()
 
 	// Enables REST API endpoint throuhg localhost.
-	restAPI.Get()
+	// restAPI.Get()
 
 	// Scheduled version of the main method.
 	// Scheduler runs the program at 6:00AM, 12:00PM, 6:00PM, and 12:00AM.
@@ -55,3 +53,8 @@ func main() {
 	// })
 	// c.Start()
 }
+
+// TODO:
+// 1. Create a paginator module/package
+// 2. Add it as an argument for all scrape functions
+// 3. Test and verify that it works.

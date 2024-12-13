@@ -34,9 +34,9 @@ To run the program:
 
 ## Future Features
 - Improve error handling messages.
-- Stats Scraping
+- Stats Scraping.
 - Optimization/Refactoring for dateScraper (Currently has to access the link for all matches to find the date.)
-- Refactor trimming to improve readability
+- Refactor trimming to improve readability.
 
 
 # Relevant/Contact Information
