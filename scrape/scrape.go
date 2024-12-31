@@ -8,8 +8,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/mrovengerdev/vlrscrape/paginator"
 	"github.com/mrovengerdev/vlrscrape/scrapetools"
 )
 
@@ -279,7 +281,6 @@ func AllRankingScrape(doc *goquery.Document) {
 			rankingDoc := ScrapePrep(rankingURL)
 			rankingScrape(rankingDoc, region)
 		}
-
 	})
 
 	fmt.Println("Ranking scrape complete.")
@@ -303,7 +304,8 @@ func findLastPage(doc *goquery.Document) int {
 
 // Conducts scraping for the total number of pages available to the given section_url.
 // For every new scrape added, the switch statement must be edited to cover it.
-func PageParser(section_url string, header string, outputFileName string) {
+func PageParser(section_url string, header string, outputFileName string, paginator *paginator.Paginator) {
+
 	// Stores page of scraped data per index
 	var totalScrape = [][]byte{}
 	// Stores the current page of scraped data
@@ -320,6 +322,13 @@ func PageParser(section_url string, header string, outputFileName string) {
 	for pageExists {
 		if currentPage <= lastPage {
 			url := fmt.Sprintf("%s%s&page=%d", section_url, header, currentPage)
+
+			// Wait for permission from the limiter
+			if err := paginator.Limiter.Wait(paginator.Context); err != nil {
+				fmt.Println("Rate limiter context canceled or timed out:", err)
+				break
+			}
+
 			document := ScrapePrep(url)
 
 			switch section_url {
@@ -331,7 +340,7 @@ func PageParser(section_url string, header string, outputFileName string) {
 				fmt.Println("Invalid base URL.")
 			}
 
-			// Analyze all data, and then replace all
+			// Join all pages of data.
 			totalScrape = append(totalScrape, currentPageScrape)
 			currentPage++
 
@@ -341,7 +350,8 @@ func PageParser(section_url string, header string, outputFileName string) {
 	}
 
 	// Create the output file.
-	file, err := os.Create("output/" + outputFileName + ".json")
+	timeStamp := time.Now().Format("2006-01-02_15-04-05")
+	file, err := os.Create("output/" + outputFileName + "_" + timeStamp + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -354,5 +364,5 @@ func PageParser(section_url string, header string, outputFileName string) {
 		}
 	}
 
-	scrapetools.FileFix("output/" + outputFileName + ".json")
+	scrapetools.FileFix("output/" + outputFileName + "_" + timeStamp + ".json")
 }
