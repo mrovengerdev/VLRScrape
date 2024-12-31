@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.33
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.66.0
 	github.com/joho/godotenv v1.5.1
+	golang.org/x/net v0.33.0
 	golang.org/x/time v0.8.0
 )
 
@@ -30,5 +31,4 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.2 // indirect
 	github.com/aws/smithy-go v1.22.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
 )
