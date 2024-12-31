@@ -1,32 +1,28 @@
-package s3port
+package paginator
 
 import (
-	"fmt"
-	"net/http"
 	"time"
 
+	"golang.org/x/net/context"
 	"golang.org/x/time/rate"
 )
 
-func restAPIPaginator(text string) {
-	limiter := rate.NewLimiter(10, 10) // 10 requests per second, with a burst of 10
+type Paginator struct {
+	Limiter *rate.Limiter
+	Context context.Context
+	Cancel  context.CancelFunc
+}
 
-	for i := 0; i < 20; i++ {
-		if err := limiter.Wait(nil); err != nil { // Block until a token is available
-			fmt.Println("Rate limiter error:", err)
-			continue
-		}
-		go func(i int) {
-			resp, err := http.Get("https://example.com")
-			if err != nil {
-				fmt.Printf("Request %d failed: %v\n", i, err)
-				return
-			}
-			fmt.Printf("Request %d succeeded: %s\n", i, resp.Status)
-			resp.Body.Close()
-		}(i)
-		time.Sleep(100 * time.Millisecond) // Just to demonstrate concurrency
+// TODO: Rewrite so cancel occurs upon 100 requests.
+// Enforces paginator that limits requests to 10 per second and cancels out if it takes longer than 30 seconds.
+func RestAPIPaginator() (paginator *Paginator) {
+	limiter := rate.NewLimiter(1, 1) // 10 requests per second, with a burst of 1 request.
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+	return &Paginator{
+		Limiter: limiter,
+		Context: ctx,
+		Cancel:  cancel,
 	}
-
-	time.Sleep(2 * time.Second) // To ensure goroutines finish
 }

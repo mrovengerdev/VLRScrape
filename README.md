@@ -32,7 +32,7 @@ To run the program:
 - go run .
 
 
-## Future Features
+## TODO
 - Improve error handling messages.
 - Stats Scraping.
 - Optimization/Refactoring for dateScraper (Currently has to access the link for all matches to find the date.)

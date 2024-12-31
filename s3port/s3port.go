@@ -2,6 +2,7 @@ package s3port
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,9 +41,12 @@ func Upload() {
 		log.Fatal("Error loading .env file")
 	}
 
-	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretKey := os.Getenv("AWS_SECRET_KEY")
-	s3Bucket := os.Getenv("AWS_S3_BUCKET")
+	accessKey := os.Getenv("AWS_VLR_ACCESS_KEY_ID")
+	secretKey := os.Getenv("AWS_VLR_SECRET_KEY")
+	s3Bucket := os.Getenv("AWS_VLR_S3_BUCKET")
+	s3Region := os.Getenv("AWS_VLR_S3_REGION")
+
+	fmt.Println(accessKey, secretKey, s3Bucket, s3Region)
 
 	if accessKey == "" || secretKey == "" {
 		log.Fatal("AWS credentials not found in .env file")
@@ -57,7 +61,7 @@ func Upload() {
 
 	// Creates SDK configuration
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-west-2"),
+		config.WithRegion(s3Region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")))
 	if err != nil {
 		log.Fatalln("error:", err)
