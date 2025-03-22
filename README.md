@@ -24,9 +24,10 @@ go get github.com/mrovengerdev/vlrscrape
 ## Usage
 Create a .env file which stores your environmental variables like so:
 
-AWS_ACCESS_KEY_ID= enter-your-acess-key-id-here  
-AWS_SECRET_KEY= enter-your-aws-secret-key-here  
-AWS_S3_BUCKET= enter-your-aws-bucket-name-here  
+AWS_VLR_ACCESS_KEY_ID=enter-your-acess-key-id-here  
+AWS_VLR_SECRET_KEY=enter-your-aws-secret-key-here  
+AWS_VLR_S3_BUCKET=enter-your-aws-bucket-name-here  
+AWS_VLR_S3_REGION=enter-your-aws-region-here  
 
 To run the program:  
 - go run .

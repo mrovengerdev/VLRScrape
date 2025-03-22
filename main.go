@@ -11,7 +11,6 @@ import (
 func main() {
 
 	// Creates output folder for JSON files.
-	scrapetools.CreateDirectory("output")
 	scrapetools.CreateDirectory("output/ranking")
 
 	// Scrape from VLR.gg threads.
